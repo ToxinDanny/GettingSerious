@@ -1,0 +1,7 @@
+--driver-mode=cl
+/std:c11
+/W4
+/Zi
+/0d
+/D_DEBUG
+/I.\src

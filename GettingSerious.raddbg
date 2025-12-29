@@ -1,0 +1,16 @@
+// raddbg 0.9.21 project file
+
+recent_file: path: "W:/GettingSerious/src/main.c"
+recent_file: path: "W:/GettingSerious/src/slab-arena.c"
+recent_file: path: "W:/GettingSerious/src/slab-arena.h"
+target:
+{
+  executable: "build/game.exe"
+  working_directory: build
+  enabled: 1
+}
+breakpoint:
+{
+  source_location: "W:/GettingSerious/src/main.c:5:1"
+  hit_count: 1
+}
