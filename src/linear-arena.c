@@ -4,7 +4,7 @@ linear_arena_t *linear_arena_init(uint64_t size, uint64_t alignment) {
 
   size = (size + alignment - 1) & ~(alignment - 1);
 
-  linear_arena_t *arena = malloc(sizeof(linear_arena_t));
+  linear_arena_t *arena = (linear_arena_t*)malloc(sizeof(linear_arena_t));
 
   arena->p = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 

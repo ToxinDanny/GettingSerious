@@ -1,7 +1,8 @@
 // raddbg 0.9.21 project file
 
 recent_file: path: "W:/GettingSerious/src/main.c"
-recent_file: path: "W:/GettingSerious/src/slab-arena.c"
+recent_file: path: "W:/GettingSerious/src/main.cpp"
+recent_file: path: "W:/GettingSerious/src/slab-arena.cpp"
 recent_file: path: "W:/GettingSerious/src/slab-arena.h"
 target:
 {
@@ -11,6 +12,6 @@ target:
 }
 breakpoint:
 {
-  source_location: "W:/GettingSerious/src/main.c:5:1"
-  hit_count: 1
+  source_location: "W:/GettingSerious/src/main.c:43:1"
+  hit_count: 5
 }
