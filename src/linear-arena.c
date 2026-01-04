@@ -1,59 +1,41 @@
 #include "linear-arena.h"
+#include <assert.h>
 
 linear_arena_t *linear_arena_init(uint64_t size, uint64_t alignment) {
 
-  size = (size + alignment - 1) & ~(alignment - 1);
+  assert(alignment >= sizeof(void *) &&
+         "ERROR: alignment must be greater or equal to 8.");
 
-  linear_arena_t *arena = (linear_arena_t*)malloc(sizeof(linear_arena_t));
+  size_t header_size = ALIGN(sizeof(linear_arena_t), alignment);
+  size_t data_size = ALIGN(size, alignment);
+  size_t total_size = ALIGN(data_size + header_size, alignment);
 
-  arena->p = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+  linear_arena_t *arena = (linear_arena_t*)VirtualAlloc(NULL, total_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-  if(arena->p == NULL){
-    printf("Errore: impossibile allocare memoria. (errno: %lu)\n", GetLastError());
-    return NULL;
-  }
-
-  arena->size = size;
-  arena->offset = 0;
+  arena->size = total_size;
+  arena->offset = header_size;
   arena->alignment = alignment;
-  arena->next = NULL;
-
+  
   return arena;
 }
 
-void *linear_arena_alloc(linear_arena_t** arena_ref, uint64_t commit_size) {
+void *linear_arena_alloc(linear_arena_t* arena, uint64_t commit_size) {
 
-  linear_arena_t* current = *arena_ref;
-  commit_size = (commit_size + current->alignment - 1) & ~(current->alignment - 1);
+  commit_size = ALIGN(commit_size, arena->alignment);
   
-  if(current->offset + commit_size > current->size){
-    current->next = linear_arena_init(current->size, current->alignment);
-    *arena_ref = current->next;
-  }
+  assert(arena->offset + commit_size <= arena->size && "ERROR: arena is full.");
+  
+  void* p = (void*)((char*)arena + arena->offset);
 
-  void* p = (void*)((char*)current->p + current->offset); 
-
-  current->offset += commit_size;
+  arena->offset += commit_size;
 
   return p;
 }
 
 void linear_arena_free(linear_arena_t* arena) {
-  if(arena->next)
-    linear_arena_free(arena->next);
-
   arena->offset = 0;
 }
 
 void linear_arena_destroy(linear_arena_t* arena) {
-
-  if(arena->next)
-    linear_arena_destroy(arena->next);
-
-  if(!VirtualFree(arena->p, 0, MEM_RELEASE)){
-    printf("Errore: impossibile deallocare la memoria. (errno: %lu)\n", GetLastError());
-    return;
-  }
-
-  free(arena);
+  assert(!VirtualFree(arena, 0, MEM_RELEASE) && "ERROR: VirtualFree failed.");
 }

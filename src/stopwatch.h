@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Windows.h>
 #include <stdint.h>
 #pragma intrinsic(__rdtsc)
