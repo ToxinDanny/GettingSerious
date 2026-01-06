@@ -94,7 +94,7 @@ Clay_RenderCommandArray RenderBaseLayout(command_queue_t* queue) {
         {
         }
 
-        CLAY(CLAY_ID("DeleteButton"),
+        CLAY(CLAY_ID("DestroyButton"),
              {.layout = {.sizing = {.width = CLAY_SIZING_FIT(200, 1000),
                                     .height = CLAY_SIZING_FIT(50, 250)},
                          .padding = CLAY_PADDING_ALL(16),

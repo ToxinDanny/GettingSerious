@@ -1,10 +1,11 @@
 // raddbg 0.9.21 project file
 
+recent_file: path: "W:/GettingSerious/src/slab-arena.c"
+recent_file: path: "W:/GettingSerious/src/ecs/entity-manager.c"
 recent_file: path: "W:/GettingSerious/src/main.c"
 recent_file: path: "W:/GettingSerious/src/linear-arena.c"
 recent_file: path: "W:/GettingSerious/src/command_queue.c"
 recent_file: path: "../../../../../Program Files (x86)/Windows Kits/10/include/10.0.22621.0/ucrt/stdio.h"
-recent_file: path: "W:/GettingSerious/src/slab-arena.c"
 recent_file: path: "W:/GettingSerious/src/command_queue.h"
 recent_file: path: "W:/GettingSerious/src/main.cpp"
 recent_file: path: "W:/GettingSerious/src/slab-arena.cpp"
@@ -14,9 +15,4 @@ target:
   executable: "build/game.exe"
   working_directory: build
   enabled: 1
-}
-breakpoint:
-{
-  source_location: "W:/GettingSerious/src/ui.c:13:1"
-  hit_count: 0
 }

@@ -294,27 +294,10 @@ static void __Clay_Win32_FillRoundRect(HDC hdc, PRECT prc, Clay_Color color, Cla
     DestroyHDCSubstitute(&substitute);
 }
 
-void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT* fonts)
+void Clay_Win32_Render(HDC* memHdc, RECT* rc, Clay_RenderCommandArray renderCommands, HFONT* fonts)
 {
     bool is_clipping = false;
     HRGN clipping_region = {0};
-
-    PAINTSTRUCT ps;
-    HDC hdc;
-    RECT rc; // Top left of our window
-
-    GetWindowRect(hwnd, &rc);
-
-    hdc = BeginPaint(hwnd, &ps);
-
-    int win_width = rc.right - rc.left,
-        win_height = rc.bottom - rc.top;
-
-    // Create an off-screen DC for double-buffering
-    renderer_hdcMem = CreateCompatibleDC(hdc);
-    renderer_hbmMem = CreateCompatibleBitmap(hdc, win_width, win_height);
-
-    renderer_hOld = SelectObject(renderer_hdcMem, renderer_hbmMem);
 
     // draw
 
@@ -328,10 +311,10 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
         case CLAY_RENDER_COMMAND_TYPE_TEXT:
         {
             Clay_Color c = renderCommand->renderData.text.textColor;
-            SetTextColor(renderer_hdcMem, RGB(c.r, c.g, c.b));
-            SetBkMode(renderer_hdcMem, TRANSPARENT);
+            SetTextColor(*memHdc, RGB(c.r, c.g, c.b));
+            SetBkMode(*memHdc, TRANSPARENT);
 
-            RECT r = rc;
+            RECT r = *rc;
             r.left = boundingBox.x;
             r.top = boundingBox.y;
             r.right = boundingBox.x + boundingBox.width + r.right;
@@ -339,14 +322,14 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
 
             uint16_t font_id = renderCommand->renderData.text.fontId;
             HFONT hFont = fonts[font_id];
-            HFONT hPrevFont = (HFONT)SelectObject(renderer_hdcMem, hFont);
+            HFONT hPrevFont = (HFONT)SelectObject(*memHdc, hFont);
 
             // Actually draw text
-            DrawTextA(renderer_hdcMem, renderCommand->renderData.text.stringContents.chars,
+            DrawTextA(*memHdc, renderCommand->renderData.text.stringContents.chars,
                       renderCommand->renderData.text.stringContents.length,
                       &r, DT_TOP | DT_LEFT);
 
-            SelectObject(renderer_hdcMem, hPrevFont);
+            SelectObject(*memHdc, hPrevFont);
 
             break;
         }
@@ -354,7 +337,7 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
         {
             DWORD dwFlags = Clay_Win32_GetRendererFlags();
             Clay_RectangleRenderData rrd = renderCommand->renderData.rectangle;
-            RECT r = rc;
+            RECT r = *rc;
 
             r.left = boundingBox.x;
             r.top = boundingBox.y;
@@ -376,7 +359,7 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
             // Also we go here if GLAYGDI_RF_ALPHABLEND flag is set and the fill color is translucid
             if (((dwFlags & CLAYGDI_RF_ALPHABLEND) && translucid) || ((dwFlags & CLAYGDI_RF_SMOOTHCORNERS) && has_rounded_corners))
             {
-                __Clay_Win32_FillRoundRect(renderer_hdcMem, &r, rrd.backgroundColor, rrd.cornerRadius);
+                __Clay_Win32_FillRoundRect(*memHdc, &r, rrd.backgroundColor, rrd.cornerRadius);
             }
             else
             {
@@ -388,12 +371,12 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
                         r.left, r.top, r.right + 1, r.bottom + 1,
                         rrd.cornerRadius.topLeft * 2, rrd.cornerRadius.topLeft * 2);
 
-                    FillRgn(renderer_hdcMem, roundedRectRgn, recColor);
+                    FillRgn(*memHdc, roundedRectRgn, recColor);
                     DeleteObject(roundedRectRgn);
                 }
                 else
                 {
-                    FillRect(renderer_hdcMem, &r, recColor);
+                    FillRect(*memHdc, &r, recColor);
                 }
 
                 DeleteObject(recColor);
@@ -412,14 +395,14 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
                                             boundingBox.x + boundingBox.width,
                                             boundingBox.y + boundingBox.height);
 
-            SelectClipRgn(renderer_hdcMem, clipping_region);
+            SelectClipRgn(*memHdc, clipping_region);
             break;
         }
 
         // The renderer should finish any previously active clipping, and begin rendering elements in full again.
         case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END:
         {
-            SelectClipRgn(renderer_hdcMem, NULL);
+            SelectClipRgn(*memHdc, NULL);
 
             if (clipping_region)
             {
@@ -436,7 +419,7 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
         case CLAY_RENDER_COMMAND_TYPE_BORDER:
         {
             Clay_BorderRenderData brd = renderCommand->renderData.border;
-            RECT r = rc;
+            RECT r = *rc;
 
             r.left = boundingBox.x;
             r.top = boundingBox.y;
@@ -448,46 +431,46 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
             HPEN bottomPen = CreatePen(PS_SOLID, brd.width.bottom, RGB(brd.color.r, brd.color.g, brd.color.b));
             HPEN rightPen = CreatePen(PS_SOLID, brd.width.right, RGB(brd.color.r, brd.color.g, brd.color.b));
 
-            HPEN oldPen = (HPEN)SelectObject(renderer_hdcMem, topPen);
+            HPEN oldPen = (HPEN)SelectObject(*memHdc, topPen);
 
             if (brd.cornerRadius.topLeft == 0)
             {
-                MoveToEx(renderer_hdcMem, r.left, r.top, NULL);
-                LineTo(renderer_hdcMem, r.right, r.top);
+                MoveToEx(*memHdc, r.left, r.top, NULL);
+                LineTo(*memHdc, r.right, r.top);
 
-                SelectObject(renderer_hdcMem, leftPen);
-                MoveToEx(renderer_hdcMem, r.left, r.top, NULL);
-                LineTo(renderer_hdcMem, r.left, r.bottom);
+                SelectObject(*memHdc, leftPen);
+                MoveToEx(*memHdc, r.left, r.top, NULL);
+                LineTo(*memHdc, r.left, r.bottom);
 
-                SelectObject(renderer_hdcMem, bottomPen);
-                MoveToEx(renderer_hdcMem, r.left, r.bottom, NULL);
-                LineTo(renderer_hdcMem, r.right, r.bottom);
+                SelectObject(*memHdc, bottomPen);
+                MoveToEx(*memHdc, r.left, r.bottom, NULL);
+                LineTo(*memHdc, r.right, r.bottom);
 
-                SelectObject(renderer_hdcMem, rightPen);
-                MoveToEx(renderer_hdcMem, r.right, r.top, NULL);
-                LineTo(renderer_hdcMem, r.right, r.bottom);
+                SelectObject(*memHdc, rightPen);
+                MoveToEx(*memHdc, r.right, r.top, NULL);
+                LineTo(*memHdc, r.right, r.bottom);
             }
             else
             {
                 // todo: i should be rounded
-                MoveToEx(renderer_hdcMem, r.left, r.top, NULL);
-                LineTo(renderer_hdcMem, r.right, r.top);
+                MoveToEx(*memHdc, r.left, r.top, NULL);
+                LineTo(*memHdc, r.right, r.top);
 
-                SelectObject(renderer_hdcMem, leftPen);
-                MoveToEx(renderer_hdcMem, r.left, r.top, NULL);
-                LineTo(renderer_hdcMem, r.left, r.bottom);
+                SelectObject(*memHdc, leftPen);
+                MoveToEx(*memHdc, r.left, r.top, NULL);
+                LineTo(*memHdc, r.left, r.bottom);
 
-                SelectObject(renderer_hdcMem, bottomPen);
-                MoveToEx(renderer_hdcMem, r.left, r.bottom, NULL);
-                LineTo(renderer_hdcMem, r.right, r.bottom);
+                SelectObject(*memHdc, bottomPen);
+                MoveToEx(*memHdc, r.left, r.bottom, NULL);
+                LineTo(*memHdc, r.right, r.bottom);
 
-                SelectObject(renderer_hdcMem, rightPen);
-                MoveToEx(renderer_hdcMem, r.right, r.top, NULL);
-                LineTo(renderer_hdcMem, r.right, r.bottom);
+                SelectObject(*memHdc, rightPen);
+                MoveToEx(*memHdc, r.right, r.top, NULL);
+                LineTo(*memHdc, r.right, r.bottom);
                 
             }
 
-            SelectObject(renderer_hdcMem, oldPen);
+            SelectObject(*memHdc, oldPen);
             DeleteObject(topPen);
             DeleteObject(leftPen);
             DeleteObject(bottomPen);
@@ -507,15 +490,6 @@ void Clay_Win32_Render(HWND hwnd, Clay_RenderCommandArray renderCommands, HFONT*
             break;
         }
     }
-
-    BitBlt(hdc, 0, 0, win_width, win_height, renderer_hdcMem, 0, 0, SRCCOPY);
-
-    // Free-up the off-screen DC
-    SelectObject(renderer_hdcMem, renderer_hOld);
-    DeleteObject(renderer_hbmMem);
-    DeleteDC(renderer_hdcMem);
-
-    EndPaint(hwnd, &ps);
 }
 
 /*

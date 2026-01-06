@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set FILES=src\*.c
+set FILES=src\*.c src\ecs\*.c src\utils\*.c
 set LIBS=user32.lib gdi32.lib kernel32.lib
 set OUT_DIR=build
 set EXE_NAME=game.exe

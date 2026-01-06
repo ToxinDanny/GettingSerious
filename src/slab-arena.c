@@ -52,7 +52,7 @@ void *slab_arena_alloc(slab_arena_t *arena, uint64_t commit_size) {
   slab_t *slab = arena->caches[index];
 
   if (slab == NULL || slab->free_list == NULL) {
-    // 1. alloco la slab e la inserisco nella cache
+    // 1. slab allocation and into the cache
     slab_t* new_slab = (slab_t *)((char *)arena + arena->offset);
 
     assert(arena->offset + SLAB_SIZE < arena->size && arena->offset || "ERROR: Arena is full. Enlarge arena size or make it dynamic.");
@@ -67,7 +67,7 @@ void *slab_arena_alloc(slab_arena_t *arena, uint64_t commit_size) {
 
     arena->caches[index] = new_slab;
 
-    // 2. slicing della slab = inizializzo i next
+    // 2. slicing 
     uintptr_t start = (uintptr_t)new_slab + sizeof(slab_t);
     uintptr_t end = (uintptr_t)new_slab + SLAB_SIZE;
     slot_t *current = (slot_t *)start;
